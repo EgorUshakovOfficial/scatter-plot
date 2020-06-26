@@ -1,0 +1,148 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <meta charset="description" content="This is a scatter plot" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--CSS page-->
+    <link rel="stylesheet" type="text/css" href="./css/Style.css">
+    <!--D3 Library-->
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <!--jQuery-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <title>Scatter Plot</title>
+</head>
+<body>
+    <script src="https://cdn.freecodecamp.org/testable-projects-fcc/v1/bundle.js"></script>
+    <div id="title">Doping in Professional Bicycle Racing</div>
+    <script>
+        // Create a HTML GET Request 
+        const url = 'https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/cyclist-data.json';
+        const req = new XMLHttpRequest(); 
+        req.open("GET", url, true);
+        req.send(); 
+        req.onload = () => {
+            var dataset = JSON.parse(req.responseText); 
+            var dataXValues = dataset.map(item => { return parseInt(item["Year"]) }) //Years(x-axis) 
+            var dataYValues = dataset.map(item => { //Time formatted in mm:ss(y-axis) 
+                let timeFormats = item["Time"].split(":"); 
+                return new Date(1970, 0, 1, 0, parseInt(timeFormats[0]), parseInt(timeFormats[1]));
+            }); 
+            // Combine x and y values together 
+            const dataValues = []; 
+            for (let i = 0; i < dataset.length; i++) {
+                dataValues.push([dataXValues[i], dataYValues[i]]);
+            }
+
+            //Create svg element 
+            const height  = 400; 
+            const width   = 800; 
+            const padding = 40;  
+            const svg = d3.select("body")
+                .append("svg")
+                .attr("width", width + "px")
+                .attr("height", height + "px")
+                .attr("padding", padding + "px")
+                .attr("id", "svg-container");
+
+            //Create a tooltip
+            svg.append("g")
+                .attr("id", "tooltip")
+                .attr("opacity", 0);
+               
+
+            //Create x-scale and y-scale
+            var xScale = d3.scaleLinear()
+                .domain([d3.min(dataXValues), d3.max(dataXValues)])
+                .range([padding, width-padding]);
+
+            var yScale = d3.scaleTime()
+                .domain([d3.min(dataYValues), d3.max(dataYValues)])
+                .range([padding, height-padding]);
+            //Create x-axis and y-axis
+            let timeFormat = d3.timeFormat("%M:%S");
+            const xAxis = d3.axisBottom(xScale).tickFormat(d3.format("d")); // Format ticks to be in yyyy format 
+            const yAxis = d3.axisLeft(yScale).tickFormat(timeFormat); // Format ticks to be in mm:ss
+
+            //Display data 
+            svg.selectAll("circle")
+                .data(dataValues)
+                .enter()
+                .append("circle")
+                .attr("class", "dot")
+                .attr("data-xvalue", d => d[0])
+                .attr("data-yvalue", d => d[1])
+                .attr("id", (d, i)=>i)
+                .attr("cx", d => xScale(d[0]))
+                .attr("cy", d => yScale(d[1]))
+                .attr("r", 5)
+                .attr("fill", (d, i) => {
+                    return (dataset[i]["Doping"] != '' ? "blue" : "red");
+                })
+
+            //Create legend
+            const legend = d3.select("svg") // Append the g element onto the domain
+                .append("g")
+                .attr("id", "legend");
+            legend.append("rect")
+                .attr("width", 25 + "px")
+                .attr("height", 25 + "px")
+                .attr("x", width - padding - 230)
+                .attr("y", height - padding - 200)
+                .attr("fill", "blue")
+                .attr("id", "blue=box")
+            legend.append("rect")
+                .attr("width", 25 + "px")
+                .attr("height", 25 + "px")
+                .attr("x", width - padding - 230)
+                .attr("y", height - padding - 165)
+                .attr("fill", "red")
+            legend.append("text")
+                .attr("x", width - padding - 195)
+                .attr("y", height - padding - 180)
+                .text("No doping allegations")
+            legend.append("text")
+                .attr("x", width - padding - 195)
+                .attr("y", height - padding - 150)
+                .text("Riders with doping allegations")
+            //Displays x-axis 
+            svg.append("g")
+                .attr("transform", "translate(0, " + (height-padding) + ")")
+                .attr("id", "x-axis")
+                .call(xAxis);
+            //Displays y-axis 
+            svg.append("g")
+                .attr("transform", "translate(" + padding + ", 0)")
+                .attr("id", "y-axis")
+                .call(yAxis);
+
+            //Events
+            $("circle").mouseover(function () {
+       
+                let id = $(this).attr("id");
+                const words = [dataset[id].Name + ": " + dataset[id].Nationality,
+                "Year: " + dataset[id].Year + ", Time: " + timeFormat(dataYValues[id]),
+                (dataset[id].Doping ? dataset[id].Doping : "")
+                ];
+                d3.select("#tooltip")
+                    .selectAll("text")
+                    .data(words)
+                    .enter()
+                    .append("text")
+                    .attr("x", (d, i) => { return xScale($(this).attr("data-xvalue")) + 25 })
+                    .attr("y", (d, i) => { return yScale(new Date($(this).attr("data-yvalue"))) + 10 * i})
+                    .text(d => d);
+                d3.select("#tooltip")
+                    .attr("data-year", $(this).attr("data-xvalue"))
+                    .attr("opacity", 1);
+            })
+
+            $("circle").mouseout(function () {
+                $("#tooltip").attr("opacity", 0);
+                $("#tooltip").text("");
+            })
+        }
+    </script>
+</body>
+</html>

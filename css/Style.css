@@ -1,0 +1,15 @@
+﻿
+#title{
+    font-size: 2rem;
+    text-align: center;
+}
+
+#svg-container{
+    border: 3px solid black;
+    display: block; 
+    margin: auto;
+}
+
+#legend{
+    border: 3px solid black;
+}
